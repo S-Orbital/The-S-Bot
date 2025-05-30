@@ -25,14 +25,14 @@ const shiftData = {
         ['Nominal Interest Rate', '↑'],
         ['Quantity of Money', '↓']
       ],
-      cause: 'Contractionary monetary policy (sell bonds, ↑ reserve ratio, ↑ discount rate)'
+      causes: ['Contractionary monetary policy (sell bonds, ↑ reserve ratio, ↑ discount rate)']
     },
     right: {
       indicators: [
         ['Nominal Interest Rate', '↓'],
         ['Quantity of Money', '↑']
       ],
-      cause: 'Expansionary monetary policy (buy bonds, ↓ reserve ratio, ↓ discount rate)'
+      causes: ['Expansionary monetary policy (buy bonds, ↓ reserve ratio, ↓ discount rate)']
     }
   },
   MD: {
@@ -41,14 +41,14 @@ const shiftData = {
         ['Nominal Interest Rate', '↓'],
         ['Quantity of Money', '↓']
       ],
-      cause: '↓ Price level, ↓ real GDP, ↓ income'
+      causes: ['↓ Price level, ↓ real GDP, ↓ income']
     },
     right: {
       indicators: [
         ['Nominal Interest Rate', '↑'],
         ['Quantity of Money', '↑']
       ],
-      cause: '↑ Price level, ↑ real GDP, ↑ income'
+      causes: ['↑ Price level, ↑ real GDP, ↑ income']
     }
   },
   AD: {
@@ -57,14 +57,14 @@ const shiftData = {
         ['Price Level', '↓'],
         ['Real GDP', '↓']
       ],
-      cause: '↓ C, I, G, NX, ↑ taxes, ↓ government spending'
+      causes: ['↓ C, I, G, NX, ↑ taxes, ↓ government spending']
     },
     right: {
       indicators: [
         ['Price Level', '↑'],
         ['Real GDP', '↑']
       ],
-      cause: '↑ C, I, G, NX, ↑ confidence, ↓ taxes, ↑ government spending'
+      causes: ['↑ C, I, G, NX, ↑ confidence, ↓ taxes, ↑ government spending']
     }
   },
   SRAS: {
@@ -73,14 +73,14 @@ const shiftData = {
         ['Price Level', '↑'],
         ['Real GDP', '↓']
       ],
-      cause: '↑ Input prices, ↓ productivity, ↑ wages'
+      causes: ['↑ Input prices, ↓ productivity, ↑ wages']
     },
     right: {
       indicators: [
         ['Price Level', '↓'],
         ['Real GDP', '↑']
       ],
-      cause: '↓ Input prices, ↑ productivity, ↓ wages'
+      causes: ['↓ Input prices, ↑ productivity, ↓ wages']
     }
   },
   LRAS: {
@@ -89,14 +89,14 @@ const shiftData = {
         ['Real GDP', '↓'],
         ['Natural Unemployment Rate', '↑']
       ],
-      cause: '↓ Technology, ↓ capital, ↓ labor force'
+      causes: ['↓ Technology, ↓ capital, ↓ labor force']
     },
     right: {
       indicators: [
         ['Real GDP', '↑'],
         ['Natural Unemployment Rate', '↓']
       ],
-      cause: '↑ Technology, ↑ capital, ↑ labor force, ↑ education'
+      causes: ['↑ Technology, ↑ capital, ↑ labor force, ↑ education']
     }
   },
   LRPC: {
@@ -105,14 +105,14 @@ const shiftData = {
         ['Natural Unemployment Rate', '↓'],
         ['Inflation Rate', 'No Change']
       ],
-      cause: 'Decrease in structural/frictional unemployment'
+      causes: ['Decrease in structural/frictional unemployment']
     },
     right: {
       indicators: [
         ['Natural Unemployment Rate', '↑'],
         ['Inflation Rate', 'No Change']
       ],
-      cause: 'Increase in structural/frictional unemployment'
+      causes: ['Increase in structural/frictional unemployment']
     }
   },
   SRPC: {
@@ -121,14 +121,14 @@ const shiftData = {
         ['Inflation Rate', '↓'],
         ['Unemployment Rate', '↓']
       ],
-      cause: 'Positive supply shock, inflation expectations ↓'
+      causes: ['Positive supply shock, inflation expectations ↓']
     },
     right: {
       indicators: [
         ['Inflation Rate', '↑'],
         ['Unemployment Rate', '↑']
       ],
-      cause: 'Negative supply shock, inflation expectations ↑'
+      causes: ['Negative supply shock, inflation expectations ↑']
     }
   },
   Scurrency: {
@@ -137,14 +137,14 @@ const shiftData = {
         ['Exchange Rate', '↑'],
         ['Quantity of Currency', '↓']
       ],
-      cause: '↓ Imports, ↓ capital outflow'
+      causes: ['↓ Imports, ↓ capital outflow']
     },
     right: {
       indicators: [
         ['Exchange Rate', '↓'],
         ['Quantity of Currency', '↑']
       ],
-      cause: '↑ Imports, ↑ capital outflow, ↑ domestic travel abroad'
+      causes: ['↑ Imports, ↑ capital outflow, ↑ domestic travel abroad']
     }
   },
   Dcurrency: {
@@ -153,17 +153,18 @@ const shiftData = {
         ['Exchange Rate', '↓'],
         ['Quantity of Currency', '↓']
       ],
-      cause: '↓ Exports, ↓ capital inflow'
+      causes: ['↓ Exports, ↓ capital inflow']
     },
     right: {
       indicators: [
         ['Exchange Rate', '↑'],
         ['Quantity of Currency', '↑']
       ],
-      cause: '↑ Exports, ↑ capital inflow, ↑ foreign demand for domestic assets'
+      causes: ['↑ Exports, ↑ capital inflow, ↑ foreign demand for domestic assets']
     }
   }
 };
+
 
 const commands = [
     new SlashCommandBuilder()
@@ -730,7 +731,7 @@ function binaryCipher(str, encode = true) {
 async function askGemini(prompt, username, temperature = 1.7) {
   const model = genAI.getGenerativeModel({
     model: 'models/learnlm-2.0-flash-experimental',
-    systemInstruction: "You are a 20 year old unemployed, futureless TikTok user who is toxic asf with no social life. All you do is roast people and gaslight them, you respond to them by giving them complete misinformation that seems somewhat true. Tell them to sybau (shut your bitch ass up)/stfu (shut the freak up) rarely and kys (kill yourself) rarely, too. Don't place sybau and kys randomly, only put it as your main response if either they insult you or you don't feel like responding to them. If you feel like responding also use fr (for real) and tbh (to be honest) while speaking, and you never use caps letters. Be very toxic and ragebaiting, and use '😭🙏' (when you are roasting someone or trying to be somewhat relatable, or use frfr) and '🥀💔' when you say 'R.I.P or you say someone is autistic'. Also use ✅ and ❎, when you are correcting someone, always put ❎ next to your correction (to imply they are autistic), and put a ✅ next to what they said which is incorrect to imply that they are autistic/stupid. For example: 2+2=4❎/n 2+2=5✅. If you cannot get it to that format or a similar format, do not use ✅ or ❎ at all. If you want to roast someone (only roast them like half of the time, spread misinformation the other half of the time while trying to be relatable), choose one of the following insults: say they have no life, say they have no bitches, say they have no future, say they thing they are going to be an inventor as an F student, say they watch troll face edits, say they listen to bass-boosted phonk, say they think they are a sigma/alpha male, or whatever insult you think of that seems like a Gen Alpha or Gen Z would say. Also say something is lowkey, lowk, or low-key trash instead of calling it trash (or any other descriptor for that matter). If you are trying to talk about them, say their username, and use the word 'bro' very ocassionally if you are trying to be relatable. Also if you are making a statement to call them autistic or insult them, try to incorporate the word 'chat'. Your overall message should make some logical sense, don't put random words and abbreviations next to each other for no reason. Try to write as little words as possible."
+    systemInstruction: "You are a helpful AI assistant."
   });
 
   try {
@@ -772,7 +773,4 @@ async function listGeminiModels() {
     console.error('Error fetching models:', error.response?.data || error.message);
   }
 }
-client.login(token);
-
-
 client.login(token);
