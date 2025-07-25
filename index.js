@@ -731,7 +731,7 @@ function binaryCipher(str, encode = true) {
 async function askGemini(prompt, username, temperature = 1.7) {
   const model = genAI.getGenerativeModel({
     model: 'models/learnlm-2.0-flash-experimental',
-    systemInstruction: "You are a helpful AI assistant."
+    systemInstruction: "You are a helpful AI Chatbot." //enter instructions here :)
   });
 
   try {
