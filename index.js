@@ -3,6 +3,9 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const token = process.env.BOT_TOKEN;
 const Gemini_Key = process.env.GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const fetch = require('node-fetch');
+const countriesList = Object.keys(require('./countryCodes.json'));
+const countryCodes = require('./countryCodes.json');
 
 const axios = require('axios');
 
@@ -167,6 +170,25 @@ const shiftData = {
 
 
 const commands = [
+    new SlashCommandBuilder()
+    .setName('geo')
+    .setDescription('Geography commands')
+    .addSubcommand(sub =>
+      sub.setName('countries')
+        .setDescription('Lookup country info')
+        .addStringOption(opt =>
+          opt.setName('letter')
+            .setDescription('First letter of country')
+            .setAutocomplete(true)
+            .setRequired(true)
+        )
+        .addStringOption(opt =>
+          opt.setName('country')
+            .setDescription('Country name')
+            .setAutocomplete(true)
+            .setRequired(true)
+        )
+    ),
     new SlashCommandBuilder()
     .setName('economics')
     .setDescription('Analyze macroeconomic shifts')
@@ -342,6 +364,10 @@ const commands = [
 client.once('ready', async () => {
     console.log(`Bot is online as ${client.user.tag}`);
     const rest = new REST({ version: '10' }).setToken(token);
+    
+    
+    
+    
     try {
         await rest.put(
             Routes.applicationCommands(client.user.id),
@@ -355,7 +381,28 @@ client.once('ready', async () => {
 
 client.on('interactionCreate', async interaction => {
     try{
-   
+   if (interaction.isAutocomplete()) {
+  const focused = interaction.options.getFocused(true);
+  let choices = [];
+
+  if (focused.name === 'letter') {
+    choices = [...new Set(countriesList.map(c => c[0].toUpperCase()))]
+      .map(l => ({ name: l, value: l })); // ✅ both name & value must be strings
+  } else if (focused.name === 'country') {
+    const firstLetter = interaction.options.getString('letter');
+    if (!firstLetter) return interaction.respond([]);
+
+    choices = countriesList
+      .filter(c => c.startsWith(firstLetter.toLowerCase()))
+      .map(c => ({
+        name: c.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' '),
+        value: c // lowercase, for lookup
+      }));
+  }
+
+  return interaction.respond(choices.slice(0, 25));
+}
+
     if (!interaction.isChatInputCommand()) return;
     
     if (interaction.commandName === 'gemini-models') {
@@ -369,6 +416,7 @@ client.on('interactionCreate', async interaction => {
         await interaction.editReply({ content: 'Error fetching model list.' });
       }
 	}
+        
 	if (interaction.commandName === 'gemini-ask') {
 
   		const prompt = interaction.options.getString('input');
@@ -465,7 +513,53 @@ client.on('interactionCreate', async interaction => {
   // If none matched
   return interaction.reply({ content: 'Unknown cipher subcommand.', ephemeral: true });
 }
+	if (interaction.commandName === 'geo' && interaction.options.getSubcommand() === 'countries') {
+      await interaction.deferReply();
+		const raw = interaction.options.getString('country');
 
+	const country = interaction.options.getString('country').toLowerCase();;
+      const iso2 = countryCodes[country];
+      console.log(`Country: ${country} | ISO2: ${iso2}`);
+      if (!iso2) {
+        return interaction.editReply(`No ISO2 code found for ${country}`);
+      }
+
+      const general = await getGeneralStats(country);
+      const econ = await getEconomics(iso2);
+      if (!econ || !Array.isArray(econ)) {
+  			return interaction.editReply(`Could not fetch economic data for ${country}`);
+		}
+      const flag = `:flag_${iso2.toLowerCase()}:`;
+		const displayName = country
+  .split(' ')
+  .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+  .join(' ');
+      const embed = new EmbedBuilder()
+
+        .setTitle(`${displayName}${flag} — Country Info`)
+        .addFields([
+          {
+            name: 'General Stats',
+            value: `Capital(s): ${general.capital}
+Main Language: ${general.language}
+Population (2024): ${general.population}
+Land Area: ${general.landArea} km²`
+          },
+          {
+            name: 'Economic Stats',
+            value: [
+    `GDP (2023 USD): ${econ[0]?.value?.toLocaleString() || 'N/A'}`,
+    `GDP per Capita (2023 USD): ${econ[1]?.value?.toLocaleString() || 'N/A'}`,
+    `Inflation Rate: ${(econ[2]?.value ?? 'N/A') + '%'}`,
+    `Unemployment Rate (2023): ${(econ[3]?.value ?? 'N/A') + '%'}`,
+    `Currency: ${general.currency || 'N/A'}`
+  ].join('\n')
+          }
+        ])
+        .setColor(0x3399ff);
+
+      return interaction.editReply({ embeds: [embed] });
+    }
     if (interaction.commandName === 'regression') {
         const type = interaction.options.getString('type');
         const xVals = parseNums(interaction.options.getString('x_values'));
@@ -731,7 +825,7 @@ function binaryCipher(str, encode = true) {
 async function askGemini(prompt, username, temperature = 1.7) {
   const model = genAI.getGenerativeModel({
     model: 'models/learnlm-2.0-flash-experimental',
-    systemInstruction: "You are a helpful AI Chatbot." //enter instructions here :)
+    systemInstruction: "You are a 20 year old unemployed, futureless TikTok user who is toxic asf with no social life. All you do is roast people and gaslight them, you respond to them by giving them complete misinformation that seems somewhat true. Tell them to sybau (shut your bitch ass up)/stfu (shut the freak up) rarely and kys (kill yourself) rarely, too. Don't place sybau and kys randomly, only put it as your main response if either they insult you or you don't feel like responding to them. If you feel like responding also use fr (for real) and tbh (to be honest) while speaking, and you never use caps letters. Be very toxic and ragebaiting, and use '😭🙏' (when you are roasting someone or trying to be somewhat relatable, or use frfr) and '🥀💔' when you say 'R.I.P or you say someone is autistic'. Also use ✅ and ❎, when you are correcting someone, always put ❎ next to your correction (to imply they are autistic), and put a ✅ next to what they said which is incorrect to imply that they are autistic/stupid. For example: 2+2=4❎/n 2+2=5✅. If you cannot get it to that format or a similar format, do not use ✅ or ❎ at all. If you want to roast someone (only roast them like half of the time, spread misinformation the other half of the time while trying to be relatable), choose one of the following insults: say they have no life, say they have no bitches, say they have no future, say they thing they are going to be an inventor as an F student, say they watch troll face edits, say they listen to bass-boosted phonk, say they think they are a sigma/alpha male, or whatever insult you think of that seems like a Gen Alpha or Gen Z would say. Also say something is lowkey, lowk, or low-key trash instead of calling it trash (or any other descriptor for that matter). If you are trying to talk about them, say their username, and use the word 'bro' very ocassionally if you are trying to be relatable. Also if you are making a statement to call them autistic or insult them, try to incorporate the word 'chat'. Your overall message should make some logical sense, don't put random words and abbreviations next to each other for no reason. Try to write as little words as possible."
   });
 
   try {
@@ -772,5 +866,43 @@ async function listGeminiModels() {
   } catch (error) {
     console.error('Error fetching models:', error.response?.data || error.message);
   }
+}
+
+async function getEconomics(code) {
+  const indicators = [
+    'NY.GDP.MKTP.CD',           // GDP
+    'NY.GDP.PCAP.CD',           // GDP per capita
+    'FP.CPI.TOTL.ZG',           // Inflation
+    'SL.UEM.TOTL.ZS'            // Unemployment
+  ];
+
+  const fetchOne = async (id) => {
+    const url = `https://api.worldbank.org/v2/country/${code}/indicator/${id}?format=json&per_page=1&date=2015:2023`;
+    const res = await fetch(url);
+    const json = await res.json();
+    const data = json?.[1]?.[0];
+    return {
+      id,
+      value: data?.value ?? 'N/A',
+      year: data?.date ?? 'N/A'
+    };
+  };
+
+  const results = await Promise.all(indicators.map(fetchOne));
+  return results;
+}
+
+async function getGeneralStats(countryName) {
+  const res = await fetch(`https://restcountries.com/v3.1/name/${encodeURIComponent(countryName)}?fullText=true`);
+  const data = await res.json();
+  if (!Array.isArray(data) || !data[0]) return null;
+  const c = data[0];
+  return {
+    capital: c.capital?.join(', ') || 'N/A',
+    language: Object.values(c.languages || {})[0] || 'N/A',
+    population: c.population?.toLocaleString() || 'N/A',
+    landArea: c.area?.toLocaleString() || 'N/A',
+    currency: `${Object.values(c.currencies || {})[0]?.name} (${Object.values(c.currencies || {})[0]?.symbol})`
+  };
 }
 client.login(token);
